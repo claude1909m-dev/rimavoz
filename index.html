@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RimaVoz — Gerador de Música com IA</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080a0f;--surface:rgba(255,255,255,0.05);--border:rgba(255,255,255,0.1);
+  --accent:#ff6b35;--accent2:#ff9500;--gold:#ffd700;
+  --text:#e8eaf0;--muted:rgba(232,234,240,0.55);
+  --font-d:'Bebas Neue',sans-serif;--font-b:'Outfit',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font-b);min-height:100vh}
+header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;background:rgba(8,10,15,.95);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.logo{font-family:var(--font-d);font-size:1.8rem;letter-spacing:2px}
+.logo span{color:var(--accent)}
+.logo small{font-family:var(--font-b);font-size:.65rem;color:var(--muted);display:block;letter-spacing:1px;margin-top:-4px}
+main{max-width:900px;margin:0 auto;padding:2rem 1.2rem 4rem}
+.hero{text-align:center;padding:1.5rem 0 2rem}
+.hero h1{font-family:var(--font-d);font-size:clamp(2rem,6vw,3rem);letter-spacing:3px;line-height:1.1}
+.hero h1 span{color:var(--accent)}
+.hero p{color:var(--muted);font-size:.9rem;margin-top:.5rem}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.2rem;margin-bottom:1rem}
+.lbl{font-size:.7rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:.7rem}
+textarea{width:100%;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--font-b);font-size:.88rem;line-height:1.7;padding:.85rem;resize:vertical;outline:none;min-height:200px;transition:border-color .2s}
+textarea:focus{border-color:var(--accent)}
+textarea::placeholder{color:var(--muted)}
+.chars{text-align:right;font-size:.68rem;color:var(--muted);margin-top:.3rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:580px){.grid2{grid-template-columns:1fr}}
+.voices{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.vbtn{display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.75rem .3rem;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:.75rem;cursor:pointer;font-family:var(--font-b);transition:all .2s;width:100%}
+.vbtn .icon{font-size:1.4rem}
+.vbtn.on{background:rgba(255,107,53,.15);border-color:var(--accent);color:var(--accent);font-weight:600}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:.5rem 0}
+.toggle-row label{font-size:.85rem;color:var(--muted)}
+.toggle{position:relative;width:44px;height:24px}
+.toggle input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;border-radius:99px;background:rgba(255,255,255,.1);cursor:pointer;transition:.3s}
+.slider::before{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.3s}
+input:checked+.slider{background:var(--accent)}
+input:checked+.slider::before{transform:translateX(20px)}
+.gen-wrap{text-align:center;margin:1.5rem 0}
+.gen-btn{display:inline-flex;align-items:center;gap:.6rem;padding:.9rem 2.4rem;border-radius:99px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;font-family:var(--font-d);font-size:1.2rem;letter-spacing:3px;cursor:pointer;transition:all .3s;box-shadow:0 4px 30px rgba(255,107,53,.35)}
+.gen-btn:disabled{opacity:.6;cursor:not-allowed;background:#333;box-shadow:none}
+.spin{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;animation:spin .8s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.status{text-align:center;margin-top:.8rem;font-size:.82rem;color:var(--muted);min-height:1.2em}
+.err{margin:1rem 0;padding:.8rem 1rem;background:rgba(255,50,50,.1);border:1px solid rgba(255,50,50,.3);border-radius:10px;color:#ff7070;font-size:.83rem;text-align:center;display:none}
+.result{margin-top:1.5rem;background:rgba(255,107,53,.06);border:1px solid rgba(255,107,53,.25);border-radius:14px;padding:1.4rem;display:none}
+.result h2{font-family:var(--font-d);font-size:1.5rem;letter-spacing:2px;color:var(--gold);margin-bottom:1rem}
+.player{display:flex;flex-direction:column;gap:.7rem}
+audio{width:100%;border-radius:10px;outline:none;filter:invert(1) hue-rotate(180deg)}
+.dl-btn{display:inline-flex;align-items:center;gap:.5rem;padding:.7rem 1.6rem;border-radius:99px;background:var(--accent);border:none;color:#fff;font-family:var(--font-d);font-size:1rem;letter-spacing:2px;cursor:pointer;text-decoration:none;font-weight:600}
+.dl-btn:hover{background:var(--accent2)}
+.rights-note{font-size:.72rem;color:var(--muted);margin-top:.5rem;line-height:1.5}
+.rights-note strong{color:var(--text)}
+.info-box{background:rgba(255,215,0,.05);border:1px solid rgba(255,215,0,.15);border-radius:10px;padding:.85rem 1rem;font-size:.8rem;line-height:1.6;color:var(--muted);margin-top:1rem}
+.info-box strong{color:var(--gold)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🎙 Rima<span>Voz</span><small>Gerador de Música com IA • 100% Gratuito</small></div>
+</header>
+
+<main>
+  <div class="hero">
+    <h1>Sua letra vira <span>música épica</span></h1>
+    <p>Voz gerada por IA • Download gratuito • Direitos 100% seus para monetizar</p>
+  </div>
+
+  <div class="card">
+    <div class="lbl">📝 Letra da música</div>
+    <textarea id="lyrics" placeholder="Cole aqui a letra completa da sua música…" oninput="document.getElementById('chars').textContent=this.value.length+' caracteres'"></textarea>
+    <div class="chars" id="chars">0 caracteres</div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="lbl">🎤 Tipo de voz</div>
+      <div class="voices">
+        <button class="vbtn on" data-voice="masculina_grave" onclick="selectVoice(this)"><span class="icon">🎙️</span>Masculina Grave</button>
+        <button class="vbtn" data-voice="masculina_jovem" onclick="selectVoice(this)"><span class="icon">🎤</span>Masculina Jovem</button>
+        <button class="vbtn" data-voice="feminina_suave" onclick="selectVoice(this)"><span class="icon">🎵</span>Feminina Suave</button>
+        <button class="vbtn" data-voice="feminina_potente" onclick="selectVoice(this)"><span class="icon">🔥</span>Feminina Potente</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="lbl">⚙️ Configurações</div>
+      <div class="toggle-row">
+        <label>🥁 Mixar com beat épico</label>
+        <label class="toggle"><input type="checkbox" id="beat" checked><span class="slider"></span></label>
+      </div>
+      <div class="info-box">
+        <strong>✅ 100% seus direitos</strong><br>
+        A voz é gerada pela IA da Microsoft (Edge TTS) em uso permitido. O beat usado é de domínio público. Você pode postar e monetizar no YouTube, Instagram e TikTok.
+      </div>
+    </div>
+  </div>
+
+  <div class="err" id="err"></div>
+
+  <div class="gen-wrap">
+    <button class="gen-btn" id="gbtn" onclick="generate()">🎵 GERAR MÚSICA</button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="result" id="result">
+    <h2>🎶 Música gerada!</h2>
+    <div class="player">
+      <audio id="player" controls></audio>
+      <div>
+        <a id="dlbtn" class="dl-btn" download="rimavoz_musica.mp3">⬇️ BAIXAR MP3</a>
+        <div class="rights-note">
+          <strong>Seus direitos:</strong> Este arquivo é 100% seu. Pode publicar no YouTube com monetização, Instagram, TikTok e qualquer plataforma. Não precisa creditar ninguém.
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+let selVoice = 'masculina_grave';
+
+function selectVoice(btn) {
+  document.querySelectorAll('.vbtn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  selVoice = btn.dataset.voice;
+}
+
+async function generate() {
+  const lyrics = document.getElementById('lyrics').value.trim();
+  const err = document.getElementById('err');
+  const status = document.getElementById('status');
+  const btn = document.getElementById('gbtn');
+  const beat = document.getElementById('beat').checked;
+
+  if (!lyrics) {
+    err.textContent = 'Cole a letra da música antes de gerar!';
+    err.style.display = 'block';
+    return;
+  }
+  err.style.display = 'none';
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Gerando…';
+
+  const steps = ['🎙️ Convertendo letra em voz…', '🥁 Mixando com o beat…', '✅ Finalizando o áudio…'];
+  let s = 0;
+  status.textContent = steps[s];
+  const si = setInterval(() => { s = Math.min(s+1, steps.length-1); status.textContent = steps[s]; }, 3000);
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ lyrics, voice: selVoice, beat })
+    });
+    clearInterval(si);
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+
+    const url = data.url;
+    document.getElementById('player').src = url;
+    document.getElementById('dlbtn').href = url;
+    document.getElementById('result').style.display = 'block';
+    document.getElementById('result').scrollIntoView({behavior:'smooth'});
+    status.textContent = '✅ Pronto! Ouça e baixe abaixo.';
+  } catch(e) {
+    clearInterval(si);
+    err.textContent = 'Erro ao gerar: ' + e.message;
+    err.style.display = 'block';
+    status.textContent = '';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '🎵 GERAR MÚSICA';
+  }
+}
+</script>
+</body>
+</html>
